@@ -7,7 +7,7 @@ Site web de comptabilité (clients, devis, factures, paiements, dépenses, table
 - Hébergement : Vercel (config dans `vercel.json`, dossier `api` pour d'éventuelles fonctions serverless).
 - Base de données, authentification, stockage : Supabase, Row Level Security sur toutes les tables.
 - Front : Vite + React + TypeScript (React Router).
-- IA : API Gemini appelée depuis le navigateur avec la clé de l'utilisateur.
+- IA : API Gemini appelée depuis le navigateur avec la clé de l'utilisateur. Modèle par défaut gemini-3.8-flash, modifiable dans Réglages (gemini-2.0-flash est arrêté depuis le 1er juin 2026, vérifier https://ai.google.dev/gemini-api/docs/deprecations).
 
 ## Commandes
 

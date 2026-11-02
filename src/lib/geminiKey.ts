@@ -18,3 +18,25 @@ export function setGeminiKey(value: string): void {
     /* stockage indisponible */
   }
 }
+
+// Nom du modèle, modifiable dans Réglages : les modèles Gemini sont régulièrement retirés.
+export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+const MODEL_KEY = "ai-comptable:gemini-model";
+
+export function getGeminiModel(): string {
+  try {
+    return localStorage.getItem(MODEL_KEY) || DEFAULT_GEMINI_MODEL;
+  } catch {
+    return DEFAULT_GEMINI_MODEL;
+  }
+}
+
+export function setGeminiModel(value: string): void {
+  try {
+    const v = value.trim();
+    if (v && v !== DEFAULT_GEMINI_MODEL) localStorage.setItem(MODEL_KEY, v);
+    else localStorage.removeItem(MODEL_KEY);
+  } catch {
+    /* stockage indisponible */
+  }
+}

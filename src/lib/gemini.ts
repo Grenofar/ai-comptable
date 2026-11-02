@@ -1,6 +1,4 @@
-import { getGeminiKey } from "./geminiKey";
-
-const MODEL = "gemini-2.0-flash";
+import { getGeminiKey, getGeminiModel } from "./geminiKey";
 
 // Appel direct depuis le navigateur avec la clé de l'utilisateur.
 // La clé n'est jamais journalisée ni envoyée ailleurs qu'à l'API Gemini.
@@ -9,7 +7,7 @@ export async function askGeminiJson(prompt: string): Promise<unknown> {
   if (!key) throw new Error("Clé Gemini manquante. Ajoutez-la dans Réglages.");
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getGeminiModel())}:generateContent`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
@@ -20,6 +18,9 @@ export async function askGeminiJson(prompt: string): Promise<unknown> {
     },
   );
 
+  if (res.status === 404) {
+    throw new Error("Modèle Gemini introuvable ou retiré. Changez le modèle dans Réglages.");
+  }
   if (!res.ok) {
     throw new Error(
       res.status === 400 || res.status === 403
