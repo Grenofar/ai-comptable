@@ -92,6 +92,17 @@ export interface Profile {
   bio: string | null;
 }
 
+export type JoinRequestStatus = "pending" | "accepted" | "rejected";
+
+export interface JoinRequest {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  status: JoinRequestStatus;
+  created_at: string;
+  requester?: Profile | null;
+}
+
 export type ConversationKind = "group" | "dm";
 
 export interface Conversation {

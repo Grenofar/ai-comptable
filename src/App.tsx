@@ -67,16 +67,25 @@ export default function App() {
 }
 
 function AuthedLayout() {
-  const { orgs, orgId, loading, setOrgId } = useOrg();
+  const { orgs, orgId, role, loading, setOrgId } = useOrg();
   const [hasGeminiKey, setHasGeminiKey] = useState(true);
   const [me, setMe] = useState<Profile | null>(null);
+  const [pendingRequests, setPendingRequests] = useState(0);
   const location = useLocation();
+  const canManage = role === "owner" || role === "admin";
 
   useEffect(() => { setHasGeminiKey(Boolean(getGeminiKey())); }, [location]);
 
   useEffect(() => {
     supabase.from("profiles").select("*").maybeSingle().then(({ data }) => setMe(data as Profile | null));
   }, [location]);
+
+  useEffect(() => {
+    if (!orgId || !canManage) { setPendingRequests(0); return; }
+    supabase.from("organization_join_requests").select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId).eq("status", "pending")
+      .then(({ count }) => setPendingRequests(count ?? 0));
+  }, [orgId, canManage, location]);
 
   if (loading) return <main className="card narrow">Chargement…</main>;
 
@@ -104,7 +113,7 @@ function AuthedLayout() {
           <NavLink to="/depenses">Dépenses</NavLink>
           <NavLink to="/taches">Tâches</NavLink>
           <NavLink to="/messages">Messagerie</NavLink>
-          <NavLink to="/organisation">Organisation</NavLink>
+          <NavLink to="/organisation">Organisation{pendingRequests > 0 && <span className="badge role-admin">{pendingRequests}</span>}</NavLink>
           <NavLink to="/reglages">Réglages</NavLink>
         </div>
         <div className="nav-bottom">
@@ -116,6 +125,12 @@ function AuthedLayout() {
         </div>
       </nav>
       <main>
+        {me && !me.bio && location.pathname !== "/profil" && (
+          <div className="banner">
+            <span>Complétez votre profil : ajoutez une courte bio pour que vos collègues sachent qui vous êtes.</span>
+            <NavLink to="/profil">Compléter mon profil</NavLink>
+          </div>
+        )}
         {!hasGeminiKey && (
           <div className="banner">
             <span>Aucune clé API Gemini enregistrée : les assistants IA sont désactivés.</span>

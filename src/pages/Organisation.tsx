@@ -2,7 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useOrg } from "../lib/org";
 import Avatar from "../components/Avatar";
-import type { OrgMember, OrgRole } from "../types";
+import type { JoinRequest, OrgMember, OrgRole, Profile } from "../types";
 
 const ROLE_FR: Record<OrgRole, string> = { owner: "Propriétaire", admin: "Administrateur", member: "Membre" };
 
@@ -25,6 +25,13 @@ export default function Organisation() {
   const [newOrgName, setNewOrgName] = useState("");
   const [newOrgMsg, setNewOrgMsg] = useState("");
 
+  const [joinName, setJoinName] = useState("");
+  const [joinMsg, setJoinMsg] = useState("");
+  const [joining, setJoining] = useState(false);
+
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
+  const [reqMsg, setReqMsg] = useState("");
+
   const loadMembers = useCallback(async () => {
     if (!orgId) return;
     const { data: mems, error } = await supabase
@@ -39,7 +46,22 @@ export default function Organisation() {
     setMembers((mems ?? []).map((m) => ({ ...m, profiles: byId.get(m.user_id) ?? null })) as OrgMember[]);
   }, [orgId]);
 
+  const loadRequests = useCallback(async () => {
+    if (!orgId || !canManage) { setRequests([]); return; }
+    const { data: reqs, error } = await supabase
+      .from("organization_join_requests").select("id, organization_id, user_id, status, created_at")
+      .eq("organization_id", orgId).eq("status", "pending").order("created_at");
+    if (error) return setReqMsg(error.message);
+    const ids = (reqs ?? []).map((r) => r.user_id);
+    const { data: profs } = ids.length
+      ? await supabase.from("profiles").select("*").in("user_id", ids)
+      : { data: [] as Profile[] };
+    const byId = new Map((profs ?? []).map((p) => [p.user_id, p as Profile]));
+    setRequests((reqs ?? []).map((r) => ({ ...r, requester: byId.get(r.user_id) ?? null })) as JoinRequest[]);
+  }, [orgId, canManage]);
+
   useEffect(() => { void loadMembers(); }, [loadMembers]);
+  useEffect(() => { void loadRequests(); }, [loadRequests]);
   useEffect(() => { setName(orgName ?? ""); }, [orgName]);
 
   async function rename(e: FormEvent) {
@@ -89,6 +111,24 @@ export default function Organisation() {
       .eq("organization_id", orgId).eq("user_id", uid);
     if (error) return setMsg(error.message);
     await reload();
+  }
+
+  async function join(e: FormEvent) {
+    e.preventDefault();
+    setJoinMsg(""); setJoining(true);
+    const { error } = await supabase.rpc("request_to_join_organization", { p_name: joinName.trim() });
+    setJoining(false);
+    if (error) return setJoinMsg(error.message);
+    setJoinName("");
+    setJoinMsg("Demande envoyée : un responsable de l'organisation doit l'accepter.");
+  }
+
+  async function decide(id: string, accept: boolean) {
+    setReqMsg("");
+    const { error } = await supabase.rpc("decide_join_request", { p_request: id, p_accept: accept });
+    if (error) return setReqMsg(error.message);
+    await loadRequests();
+    if (accept) await loadMembers();
   }
 
   async function createOrg(e: FormEvent) {
@@ -144,6 +184,26 @@ export default function Organisation() {
         {!isOwner && <button className="secondary" onClick={leave} style={{ marginTop: "1rem" }}>Quitter cette organisation</button>}
       </div>
 
+      {canManage && requests.length > 0 && (
+        <div className="card">
+          <h2>Demandes en attente ({requests.length})</h2>
+          {requests.map((r) => (
+            <div className="member-row" key={r.id}>
+              <div className="who">
+                <Avatar url={r.requester?.avatar_url} name={r.requester?.display_name} size={32} />
+                <div>
+                  <div className="name">{r.requester?.display_name || "Utilisateur"}</div>
+                  {r.requester?.bio && <div className="email">{r.requester.bio}</div>}
+                </div>
+              </div>
+              <button onClick={() => decide(r.id, true)}>Accepter</button>
+              <button className="danger" onClick={() => decide(r.id, false)}>Refuser</button>
+            </div>
+          ))}
+          {reqMsg && <p className="msg">{reqMsg}</p>}
+        </div>
+      )}
+
       {canManage && (
         <div className="card">
           <h2>Inviter un membre</h2>
@@ -166,6 +226,16 @@ export default function Organisation() {
           {inviteMsg && <p className={inviteMsg === "Membre ajouté." ? "ok" : "msg"}>{inviteMsg}</p>}
         </div>
       )}
+
+      <div className="card">
+        <h2>Rejoindre une organisation</h2>
+        <p className="hint">Saisissez le nom exact d'une organisation : un responsable devra accepter votre demande.</p>
+        <form onSubmit={join} className="row">
+          <label>Nom de l'organisation<input value={joinName} onChange={(e) => setJoinName(e.target.value)} required /></label>
+          <button type="submit" disabled={joining}>{joining ? "…" : "Demander à rejoindre"}</button>
+        </form>
+        {joinMsg && <p className={joinMsg.startsWith("Demande envoyée") ? "ok" : "msg"}>{joinMsg}</p>}
+      </div>
 
       <div className="card">
         <h2>Créer une nouvelle organisation</h2>
