@@ -19,11 +19,20 @@ authentification sur Supabase.
   Providers) avec un Client ID/Secret Google Cloud, et l'URL de redirection Supabase ajoutée dans la
   console Google Cloud.
 - **Pages légales** : mentions légales, CGU, politique de confidentialité (`/mentions-legales`,
-  `/cgu`, `/confidentialite`), accessibles même sans connexion. Les mentions légales contiennent des
-  champs `[à compléter]` (identité de l'éditeur) à remplir avant toute exploitation commerciale.
+  `/cgu`, `/confidentialite`), accessibles même sans connexion, contact éditeur
+  grnfrscripts@gmail.com. Les mentions légales contiennent encore des champs `[à compléter]`
+  (raison sociale, SIRET, adresse de l'éditeur) à remplir avant toute exploitation commerciale.
 - **Sécurité** : RLS activée sur toutes les tables métier, fonctions internes protégées
   (`search_path` fixe, non exposées via l'API REST), en-têtes de sécurité (CSP, HSTS,
   Permissions-Policy, X-Frame-Options) dans `vercel.json`.
+- **Générateur de devis/factures** : création, édition des brouillons (`update_draft_document`),
+  émission avec numérotation séquentielle, paiements, conversion devis accepté → facture
+  (`convert_quote_to_invoice`), export PDF via impression navigateur (`src/lib/print.ts`). Le PDF
+  reprend les mentions légales de l'émetteur (SIRET, TVA, IBAN...) renseignées dans Réglages.
+- **Vercel** : les variables d'environnement (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) doivent
+  être configurées manuellement dans le dashboard Vercel (Settings → Environment Variables) — le
+  connecteur Vercel MCP de cette session n'a pas accès à la gestion de projet/déploiement (seulement
+  Sandbox/Drive/Flags), donc cette étape ne peut pas être automatisée depuis ici.
 - **À vérifier/compléter** : voir la section « À faire » ci-dessous.
 
 ## Stack
@@ -80,12 +89,12 @@ npm run dev
 
 ## À faire
 
-1. Remplacer les champs `[à compléter]` des mentions légales par l'identité réelle de l'éditeur
+1. Configurer `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` dans Vercel (Settings → Environment
+   Variables) puis redéployer — sans ça le site reste bloqué sur « Configuration requise ».
+2. Remplacer les champs `[à compléter]` des mentions légales par l'identité réelle de l'éditeur
    (raison sociale, SIRET, adresse) avant toute exploitation commerciale.
-2. Activer et configurer le fournisseur Google dans Supabase (Authentication → Providers) si ce n'est
-   pas déjà fait, avec un Client ID/Secret Google Cloud dédié à ce projet.
-3. Informations de l'émetteur (raison sociale, SIRET, mentions légales) sur les PDF de devis/factures.
+3. Activer et configurer le fournisseur Google dans Supabase (Authentication → Providers), avec un
+   Client ID/Secret Google Cloud dont l'« Authorized redirect URI » est
+   `https://cuxfvyhrlqxysaffvaos.supabase.co/auth/v1/callback`.
 4. Catalogue de produits dans l'interface (table `products` déjà créée).
-5. Tests automatisés (totaux, validation des sorties IA).
-6. Édition des brouillons et conversion devis en facture côté interface (les fonctions SQL existent :
-   `update_draft_document`, `convert_quote_to_invoice`).
+5. Tests automatisés front (les contrôles SQL ont un test de fumée dans `supabase/tests/smoke.sql`).
