@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useOrg } from "../lib/org";
 import { formatEuro } from "../lib/money";
 
 interface Stats { invoiced: number; paid: number; outstanding: number; expenses: number; overdue: number }
 
 export default function Dashboard() {
+  const { orgId } = useOrg();
   const [s, setS] = useState<Stats | null>(null);
   const [msg, setMsg] = useState("");
 
@@ -13,9 +15,9 @@ export default function Dashboard() {
       const year = new Date().getFullYear();
       const from = `${year}-01-01`;
       const [inv, pay, exp] = await Promise.all([
-        supabase.from("documents").select("total_cents,status,due_date").eq("type", "invoice").gte("issue_date", from),
-        supabase.from("payments").select("amount_cents").gte("paid_on", from),
-        supabase.from("expenses").select("amount_cents").gte("spent_on", from),
+        supabase.from("documents").select("total_cents,status,due_date").eq("organization_id", orgId).eq("type", "invoice").gte("issue_date", from),
+        supabase.from("payments").select("amount_cents").eq("organization_id", orgId).gte("paid_on", from),
+        supabase.from("expenses").select("amount_cents").eq("organization_id", orgId).gte("spent_on", from),
       ]);
       const err = inv.error ?? pay.error ?? exp.error;
       if (err) return setMsg(err.message);
@@ -29,7 +31,7 @@ export default function Dashboard() {
         expenses: (exp.data ?? []).reduce((a, e) => a + e.amount_cents, 0), overdue,
       });
     })();
-  }, []);
+  }, [orgId]);
 
   if (msg) return <p className="msg">{msg}</p>;
   if (!s) return <p>Chargement…</p>;

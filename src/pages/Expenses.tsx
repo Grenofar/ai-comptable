@@ -1,10 +1,12 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useOrg } from "../lib/org";
 import { formatEuro, toCents } from "../lib/money";
 import { EXPENSE_CATEGORIES, categorizeExpense } from "../lib/agents";
 import type { Expense } from "../types";
 
 export default function Expenses() {
+  const { orgId } = useOrg();
   const [items, setItems] = useState<Expense[]>([]);
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
@@ -14,10 +16,10 @@ export default function Expenses() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from("expenses").select("*").order("spent_on", { ascending: false });
+    const { data, error } = await supabase.from("expenses").select("*").eq("organization_id", orgId).order("spent_on", { ascending: false });
     if (error) setMsg(error.message);
     else setItems((data ?? []) as Expense[]);
-  }, []);
+  }, [orgId]);
   useEffect(() => { void load(); }, [load]);
 
   // Agent de classement : propose une catégorie, l'utilisateur garde la main.
@@ -34,7 +36,7 @@ export default function Expenses() {
     const cents = toCents(amount);
     if (cents <= 0) return setMsg("Montant invalide.");
     const { error } = await supabase.from("expenses").insert({
-      label: label.trim(), category, amount_cents: cents, vat_cents: toCents(vat),
+      label: label.trim(), category, amount_cents: cents, vat_cents: toCents(vat), organization_id: orgId,
     });
     if (error) return setMsg(error.message);
     setLabel(""); setAmount(""); setVat("0");

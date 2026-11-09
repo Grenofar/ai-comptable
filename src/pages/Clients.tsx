@@ -1,25 +1,27 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useOrg } from "../lib/org";
 import type { Client } from "../types";
 
 export default function Clients() {
+  const { orgId } = useOrg();
   const [clients, setClients] = useState<Client[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from("clients").select("*").order("name");
+    const { data, error } = await supabase.from("clients").select("*").eq("organization_id", orgId).order("name");
     if (error) setMsg(error.message);
     else setClients((data ?? []) as Client[]);
-  }, []);
+  }, [orgId]);
 
   useEffect(() => { void load(); }, [load]);
 
   async function add(e: FormEvent) {
     e.preventDefault();
     setMsg("");
-    const { error } = await supabase.from("clients").insert({ name: name.trim(), email: email.trim() || null });
+    const { error } = await supabase.from("clients").insert({ name: name.trim(), email: email.trim() || null, organization_id: orgId });
     if (error) return setMsg(error.message);
     setName(""); setEmail("");
     await load();

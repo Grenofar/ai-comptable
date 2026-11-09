@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import {
   DEFAULT_GEMINI_MODEL, getGeminiKey, getGeminiModel, setGeminiKey, setGeminiModel,
 } from "../lib/geminiKey";
+import { getTheme, setTheme, type Theme } from "../lib/theme";
 import { supabase } from "../lib/supabase";
+import { useOrg } from "../lib/org";
 import type { IssuerProfile } from "../types";
 
 const MODEL_OPTIONS = [
@@ -18,6 +20,11 @@ const emptyProfile: IssuerProfile = {
 };
 
 export default function Settings() {
+  const { orgId, role } = useOrg();
+  const canEditIssuer = role === "owner" || role === "admin";
+
+  const [theme, setThemeState] = useState<Theme>(getTheme());
+
   const [key, setKey] = useState(getGeminiKey());
   const storedModel = getGeminiModel();
   const [modelChoice, setModelChoice] = useState(
@@ -33,10 +40,15 @@ export default function Settings() {
   const [profileSaved, setProfileSaved] = useState(false);
 
   useEffect(() => {
-    supabase.from("issuer_profiles").select("*").maybeSingle().then(({ data }) => {
-      if (data) setProfile({ ...emptyProfile, ...data });
+    supabase.from("issuer_profiles").select("*").eq("organization_id", orgId).maybeSingle().then(({ data }) => {
+      setProfile(data ? { ...emptyProfile, ...data } : emptyProfile);
     });
-  }, []);
+  }, [orgId]);
+
+  function changeTheme(t: Theme) {
+    setTheme(t);
+    setThemeState(t);
+  }
 
   function saveGemini() {
     setGeminiKey(key);
@@ -56,6 +68,7 @@ export default function Settings() {
     if (profile.siret && !/^\d{14}$/.test(profile.siret)) return setProfileMsg("Le SIRET doit contenir 14 chiffres.");
     const { error } = await supabase.from("issuer_profiles").upsert({
       ...profile,
+      organization_id: orgId,
       legal_form: profile.legal_form || null,
       address: profile.address || null,
       siret: profile.siret || null,
@@ -75,6 +88,18 @@ export default function Settings() {
   return (
     <>
       <h1>Réglages</h1>
+
+      <div className="card">
+        <h2>Apparence</h2>
+        <div className="row">
+          <label>Thème
+            <select value={theme} onChange={(e) => changeTheme(e.target.value as Theme)}>
+              <option value="dark">Sombre</option>
+              <option value="light">Clair</option>
+            </select>
+          </label>
+        </div>
+      </div>
 
       <div className="card">
         <h2>Agents IA (Gemini)</h2>
@@ -108,56 +133,58 @@ export default function Settings() {
         <p className="hint">
           Ces informations apparaissent sur vos devis et factures (mentions obligatoires). Elles sont
           figées dans chaque document au moment de son émission : les modifier ici n'affecte pas les
-          documents déjà émis.
+          documents déjà émis. {!canEditIssuer && "Seuls les responsables de l'organisation peuvent les modifier."}
         </p>
-        <div className="row">
-          <label>Raison sociale / nom *
-            <input value={profile.legal_name} onChange={(e) => patch({ legal_name: e.target.value })} />
+        <fieldset disabled={!canEditIssuer} style={{ border: 0, padding: 0, margin: 0 }}>
+          <div className="row">
+            <label>Raison sociale / nom *
+              <input value={profile.legal_name} onChange={(e) => patch({ legal_name: e.target.value })} />
+            </label>
+            <label>Forme juridique
+              <input value={profile.legal_form ?? ""} onChange={(e) => patch({ legal_form: e.target.value })} placeholder="EI, EURL, SASU…" />
+            </label>
+          </div>
+          <label>Adresse
+            <input value={profile.address ?? ""} onChange={(e) => patch({ address: e.target.value })} />
           </label>
-          <label>Forme juridique
-            <input value={profile.legal_form ?? ""} onChange={(e) => patch({ legal_form: e.target.value })} placeholder="EI, EURL, SASU…" />
+          <div className="row">
+            <label>SIRET
+              <input value={profile.siret ?? ""} onChange={(e) => patch({ siret: e.target.value })} placeholder="14 chiffres" maxLength={14} />
+            </label>
+            <label>N° TVA intracommunautaire
+              <input value={profile.vat_number ?? ""} onChange={(e) => patch({ vat_number: e.target.value })} placeholder="FR… (vide si non assujetti)" />
+            </label>
+          </div>
+          <div className="row">
+            <label>E-mail
+              <input type="email" value={profile.email ?? ""} onChange={(e) => patch({ email: e.target.value })} />
+            </label>
+            <label>Téléphone
+              <input value={profile.phone ?? ""} onChange={(e) => patch({ phone: e.target.value })} />
+            </label>
+          </div>
+          <label>IBAN (affiché sur les factures pour le règlement)
+            <input value={profile.iban ?? ""} onChange={(e) => patch({ iban: e.target.value })} />
           </label>
-        </div>
-        <label>Adresse
-          <input value={profile.address ?? ""} onChange={(e) => patch({ address: e.target.value })} />
-        </label>
-        <div className="row">
-          <label>SIRET
-            <input value={profile.siret ?? ""} onChange={(e) => patch({ siret: e.target.value })} placeholder="14 chiffres" maxLength={14} />
+          <label>Conditions de paiement
+            <input
+              value={profile.payment_terms ?? ""}
+              onChange={(e) => patch({ payment_terms: e.target.value })}
+              placeholder="Paiement à 30 jours à compter de la date d'émission."
+            />
           </label>
-          <label>N° TVA intracommunautaire
-            <input value={profile.vat_number ?? ""} onChange={(e) => patch({ vat_number: e.target.value })} placeholder="FR… (vide si non assujetti)" />
+          <label>Mentions légales complémentaires
+            <textarea
+              rows={2}
+              value={profile.legal_notice ?? ""}
+              onChange={(e) => patch({ legal_notice: e.target.value })}
+              placeholder="Ex. (B2B) : pénalités de retard au taux légal x3, indemnité forfaitaire de recouvrement de 40 €."
+            />
           </label>
-        </div>
-        <div className="row">
-          <label>E-mail
-            <input type="email" value={profile.email ?? ""} onChange={(e) => patch({ email: e.target.value })} />
-          </label>
-          <label>Téléphone
-            <input value={profile.phone ?? ""} onChange={(e) => patch({ phone: e.target.value })} />
-          </label>
-        </div>
-        <label>IBAN (affiché sur les factures pour le règlement)
-          <input value={profile.iban ?? ""} onChange={(e) => patch({ iban: e.target.value })} />
-        </label>
-        <label>Conditions de paiement
-          <input
-            value={profile.payment_terms ?? ""}
-            onChange={(e) => patch({ payment_terms: e.target.value })}
-            placeholder="Paiement à 30 jours à compter de la date d'émission."
-          />
-        </label>
-        <label>Mentions légales complémentaires
-          <textarea
-            rows={2}
-            value={profile.legal_notice ?? ""}
-            onChange={(e) => patch({ legal_notice: e.target.value })}
-            placeholder="Ex. (B2B) : pénalités de retard au taux légal x3, indemnité forfaitaire de recouvrement de 40 €."
-          />
-        </label>
-        <div className="row">
-          <button onClick={saveProfile}>Enregistrer</button>
-        </div>
+          <div className="row">
+            <button onClick={saveProfile}>Enregistrer</button>
+          </div>
+        </fieldset>
         {profileMsg && <p className="msg">{profileMsg}</p>}
         {profileSaved && <p className="ok">Informations de l'émetteur enregistrées.</p>}
       </div>

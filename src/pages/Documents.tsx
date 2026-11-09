@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useOrg } from "../lib/org";
 import { formatEuro, toCents } from "../lib/money";
 import { draftReminder } from "../lib/agents";
 import { printDocument } from "../lib/print";
@@ -11,6 +12,7 @@ const STATUS_FR: Record<string, string> = {
 };
 
 export default function Documents({ type }: { type: DocType }) {
+  const { orgId } = useOrg();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [msg, setMsg] = useState("");
   const [reminder, setReminder] = useState<{ subject: string; body: string } | null>(null);
@@ -18,10 +20,10 @@ export default function Documents({ type }: { type: DocType }) {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.from("documents").select("*, clients(name)")
-      .eq("type", type).order("created_at", { ascending: false });
+      .eq("organization_id", orgId).eq("type", type).order("created_at", { ascending: false });
     if (error) setMsg(error.message);
     else setDocs((data ?? []) as Doc[]);
-  }, [type]);
+  }, [type, orgId]);
   useEffect(() => { void load(); }, [load]);
 
   async function run(fn: () => Promise<unknown>) {
@@ -42,7 +44,7 @@ export default function Documents({ type }: { type: DocType }) {
       if (!v) return;
       const cents = toCents(v);
       if (cents <= 0) throw new Error("Montant invalide.");
-      const { error } = await supabase.from("payments").insert({ document_id: d.id, amount_cents: cents });
+      const { error } = await supabase.from("payments").insert({ document_id: d.id, amount_cents: cents, organization_id: d.organization_id });
       if (error) throw new Error(error.message);
     });
 

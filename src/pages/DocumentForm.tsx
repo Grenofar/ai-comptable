@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useOrg } from "../lib/org";
 import { documentTotals, formatEuro, toCents } from "../lib/money";
 import { draftLines } from "../lib/agents";
 import type { Client, Doc, DocType, DocumentLine } from "../types";
@@ -9,6 +10,7 @@ interface Props { type: DocType; onCreated: () => void; editDoc?: Doc | null; on
 const emptyLine = (): DocumentLine => ({ description: "", quantity: 1, unit_price_cents: 0, vat_rate: 20 });
 
 export default function DocumentForm({ type, onCreated, editDoc, onCancelEdit }: Props) {
+  const { orgId } = useOrg();
   const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -19,8 +21,9 @@ export default function DocumentForm({ type, onCreated, editDoc, onCancelEdit }:
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    supabase.from("clients").select("*").order("name").then(({ data }) => setClients((data ?? []) as Client[]));
-  }, []);
+    supabase.from("clients").select("*").eq("organization_id", orgId).order("name")
+      .then(({ data }) => setClients((data ?? []) as Client[]));
+  }, [orgId]);
 
   useEffect(() => {
     if (!editDoc) { setClientId(""); setDueDate(""); setNotes(""); setLines([emptyLine()]); return; }
@@ -73,11 +76,11 @@ export default function DocumentForm({ type, onCreated, editDoc, onCancelEdit }:
     }
 
     const { data: doc, error } = await supabase.from("documents")
-      .insert({ client_id: clientId, type, due_date: dueDate || null, notes: notes.trim() || null })
+      .insert({ client_id: clientId, type, due_date: dueDate || null, notes: notes.trim() || null, organization_id: orgId })
       .select("id").single();
     if (error || !doc) return setMsg(error?.message ?? "Erreur.");
     const { error: e2 } = await supabase.from("document_lines").insert(
-      valid.map((l, i) => ({ ...l, document_id: doc.id, position: i })),
+      valid.map((l, i) => ({ ...l, document_id: doc.id, position: i, organization_id: orgId })),
     );
     if (e2) {
       await supabase.from("documents").delete().eq("id", doc.id);
