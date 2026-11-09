@@ -14,6 +14,7 @@ export default function Documents({ type }: { type: DocType }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [msg, setMsg] = useState("");
   const [reminder, setReminder] = useState<{ subject: string; body: string } | null>(null);
+  const [editing, setEditing] = useState<Doc | null>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.from("documents").select("*, clients(name)")
@@ -45,6 +46,14 @@ export default function Documents({ type }: { type: DocType }) {
       if (error) throw new Error(error.message);
     });
 
+  const convertToInvoice = (d: Doc) =>
+    run(async () => {
+      if (!window.confirm("Créer une facture brouillon à partir de ce devis accepté ?")) return;
+      const { error } = await supabase.rpc("convert_quote_to_invoice", { p_quote: d.id });
+      if (error) throw new Error(error.message);
+      setMsg("Facture brouillon créée à partir du devis : retrouvez-la dans l'onglet Factures.");
+    });
+
   // Agent de relance : prépare le texte, aucun envoi automatique.
   const remind = (d: Doc) =>
     run(async () => {
@@ -60,7 +69,7 @@ export default function Documents({ type }: { type: DocType }) {
   return (
     <>
       <h1>{label}</h1>
-      <DocumentForm type={type} onCreated={load} />
+      <DocumentForm type={type} onCreated={load} editDoc={editing} onCancelEdit={() => setEditing(null)} />
       {msg && <p className="msg">{msg}</p>}
       {reminder && (
         <div className="card">
@@ -83,6 +92,7 @@ export default function Documents({ type }: { type: DocType }) {
                 <td className="num">{formatEuro(d.total_cents)}</td>
                 <td className="row">
                   {d.status === "draft" && (<>
+                    <button className="secondary" onClick={() => setEditing(d)}>Modifier</button>
                     <button onClick={() => setStatus(d, "sent", "Émettre ce document ? Un numéro définitif sera attribué.")}>Émettre</button>
                     <button className="danger" onClick={() => run(async () => { if (window.confirm("Supprimer ce brouillon ?")) await supabase.from("documents").delete().eq("id", d.id); })}>Supprimer</button>
                   </>)}
@@ -90,6 +100,9 @@ export default function Documents({ type }: { type: DocType }) {
                     <button onClick={() => setStatus(d, "accepted", "Marquer comme accepté ?")}>Accepté</button>
                     <button className="secondary" onClick={() => setStatus(d, "rejected", "Marquer comme refusé ?")}>Refusé</button>
                   </>)}
+                  {type === "quote" && d.status === "accepted" && (
+                    <button onClick={() => convertToInvoice(d)}>Convertir en facture</button>
+                  )}
                   {type === "invoice" && (d.status === "sent") && (<>
                     <button onClick={() => addPayment(d)}>Paiement</button>
                     <button className="secondary" onClick={() => remind(d)}>Relance IA</button>

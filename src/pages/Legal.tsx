@@ -21,7 +21,7 @@ export function MentionsLegales() {
       <p>
         Raison sociale : [à compléter] — Forme juridique : [à compléter] — SIRET : [à compléter]
         <br />
-        Adresse du siège : [à compléter] — Contact : [à compléter]
+        Adresse du siège : [à compléter] — Contact : <a href="mailto:grnfrscripts@gmail.com">grnfrscripts@gmail.com</a>
       </p>
       <h2>Hébergement</h2>
       <p>
@@ -101,7 +101,7 @@ export function Confidentialite() {
       <p>
         Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement et de
         portabilité de vos données. Vous pouvez exercer ces droits depuis l'application ou en
-        contactant l'éditeur (voir mentions légales).
+        contactant l'éditeur à <a href="mailto:grnfrscripts@gmail.com">grnfrscripts@gmail.com</a>.
       </p>
       <h2>Cookies</h2>
       <p>

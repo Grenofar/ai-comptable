@@ -19,6 +19,23 @@ export interface DocumentLine {
   vat_rate: number;
 }
 
+export interface IssuerSnapshot {
+  legal_name?: string;
+  legal_form?: string | null;
+  address?: string | null;
+  siret?: string | null;
+  vat_number?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  iban?: string | null;
+  payment_terms?: string | null;
+  legal_notice?: string | null;
+}
+
+export interface IssuerProfile extends IssuerSnapshot {
+  legal_name: string;
+}
+
 export interface Doc {
   id: string;
   client_id: string;
@@ -31,6 +48,8 @@ export interface Doc {
   subtotal_cents: number;
   vat_cents: number;
   total_cents: number;
+  source_document_id?: string | null;
+  issuer_snapshot?: IssuerSnapshot | null;
   clients?: { name: string } | null;
 }
 

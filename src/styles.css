@@ -2,10 +2,13 @@
 * { box-sizing: border-box; }
 body { margin: 0; }
 .layout { display: grid; grid-template-columns: 210px 1fr; min-height: 100vh; }
-nav { background: #1c2430; padding: 1rem; display: flex; flex-direction: column; gap: .4rem; }
+nav { background: #1c2430; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between; }
+.nav-top { display: flex; flex-direction: column; gap: .4rem; }
 nav strong { color: #fff; margin-bottom: 1rem; font-size: 1.1rem; }
 nav a { color: #b8c2d0; text-decoration: none; padding: .45rem .6rem; border-radius: 6px; }
 nav a.active, nav a:hover { background: #2d3a4d; color: #fff; }
+.nav-logout { color: #b8c2d0; }
+.nav-logout:hover { color: #fff; }
 main { padding: 1.5rem 2rem; max-width: 1000px; }
 .card { background: #fff; border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 1rem; }
 .narrow { max-width: 380px; margin: 4rem auto; }

@@ -60,14 +60,16 @@ export default function App() {
   return (
     <div className="layout">
       <nav>
-        <strong>AI Comptable</strong>
-        <NavLink to="/">Tableau de bord</NavLink>
-        <NavLink to="/clients">Clients</NavLink>
-        <NavLink to="/devis">Devis</NavLink>
-        <NavLink to="/factures">Factures</NavLink>
-        <NavLink to="/depenses">Dépenses</NavLink>
-        <NavLink to="/reglages">Réglages</NavLink>
-        <button className="link" onClick={() => supabase.auth.signOut()}>Déconnexion</button>
+        <div className="nav-top">
+          <strong>AI Comptable</strong>
+          <NavLink to="/">Tableau de bord</NavLink>
+          <NavLink to="/clients">Clients</NavLink>
+          <NavLink to="/devis">Devis</NavLink>
+          <NavLink to="/factures">Factures</NavLink>
+          <NavLink to="/depenses">Dépenses</NavLink>
+          <NavLink to="/reglages">Réglages</NavLink>
+        </div>
+        <button className="link nav-logout" onClick={() => supabase.auth.signOut()}>Déconnexion</button>
       </nav>
       <main>
         {!hasGeminiKey && (
