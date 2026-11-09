@@ -94,6 +94,17 @@ export interface Profile {
 
 export type JoinRequestStatus = "pending" | "accepted" | "rejected";
 
+export interface PlanningEvent {
+  id: string;
+  organization_id: string;
+  title: string;
+  description: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  created_by: string;
+  attendees: { user_id: string; display_name: string }[];
+}
+
 export interface JoinRequest {
   id: string;
   organization_id: string;

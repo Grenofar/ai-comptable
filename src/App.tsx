@@ -15,6 +15,7 @@ import Organisation from "./pages/Organisation";
 import Profil from "./pages/Profil";
 import Messages from "./pages/Messages";
 import Tasks from "./pages/Tasks";
+import Planning from "./pages/Planning";
 import { Cgu, Confidentialite, MentionsLegales } from "./pages/Legal";
 import type { Profile } from "./types";
 
@@ -112,6 +113,7 @@ function AuthedLayout() {
           <NavLink to="/factures">Factures</NavLink>
           <NavLink to="/depenses">Dépenses</NavLink>
           <NavLink to="/taches">Tâches</NavLink>
+          <NavLink to="/planning">Planning</NavLink>
           <NavLink to="/messages">Messagerie</NavLink>
           <NavLink to="/organisation">Organisation{pendingRequests > 0 && <span className="badge role-admin">{pendingRequests}</span>}</NavLink>
           <NavLink to="/reglages">Réglages</NavLink>
@@ -149,6 +151,7 @@ function AuthedLayout() {
               <Route path="/factures" element={<Documents type="invoice" />} />
               <Route path="/depenses" element={<Expenses />} />
               <Route path="/taches" element={<Tasks />} />
+              <Route path="/planning" element={<Planning />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/reglages" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />

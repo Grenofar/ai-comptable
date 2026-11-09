@@ -23,8 +23,17 @@ authentification sur Supabase.
   pour renommer, gérer les membres/rôles, inviter (par e-mail, uniquement des personnes ayant déjà un
   compte AI Comptable — aucun envoi d'e-mail d'invitation n'est implémenté) et créer d'autres
   organisations. Un sélecteur d'organisation est dans la navigation.
-- **Profils** : page `/profil` (nom affiché, bio, photo de profil stockée dans le bucket Supabase
-  Storage `avatars`, public en lecture, écriture limitée à son propriétaire).
+- **Rejoindre une organisation** : un utilisateur saisit le nom exact d'une organisation
+  (`request_to_join_organization`) ; owner/admin voient la demande avec la bio du demandeur sur
+  `/organisation` et l'acceptent/refusent (`decide_join_request`), avec un badge de notification dans
+  la nav.
+- **Profils** : page `/profil` (nom affiché, bio — un bandeau invite à la remplir si elle est vide —,
+  photo de profil recadrée automatiquement en carré côté navigateur avant envoi, stockée dans le
+  bucket Supabase Storage `avatars`, public en lecture, écriture limitée à son propriétaire). Le CSP
+  de `vercel.json` autorise `img-src` depuis `*.supabase.co` pour que ces photos s'affichent.
+- **Planning** (`/planning`) : calendrier commun à l'organisation (tous les membres voient tous les
+  événements), n'importe qui crée un événement et peut y ajouter d'autres membres. Vue agenda
+  (liste groupée par jour), pas de calendrier mensuel.
 - **Messagerie interne** (`/messages`) : un canal de groupe "Général" automatique par organisation
   (tous les membres y sont ajoutés/retirés automatiquement), plus des conversations privées à la
   demande via le bouton « + Nouveau message ». Pas de websocket : la liste de messages se rafraîchit
@@ -52,13 +61,12 @@ authentification sur Supabase.
   devis accepté → facture (`convert_quote_to_invoice`), export PDF via impression navigateur
   (`src/lib/print.ts`). Le PDF reprend les mentions légales de l'émetteur (SIRET, TVA, IBAN...)
   renseignées dans Réglages, propres à l'organisation (et non plus à chaque utilisateur).
-- **Non vérifié en conditions réelles** : l'espace connecté (organisations, messagerie, tâches) n'a
-  pas pu être testé dans un navigateur dans cet environnement — Supabase a rejeté les adresses de
-  test synthétiques, et créer un compte directement en base est bloqué par la politique de sécurité
-  de cet environnement. Build et vérification TypeScript passent, le code SQL/React a été relu
-  attentivement, mais un test manuel par un humain (créer un compte, une organisation, inviter un
-  second compte, envoyer des messages, assigner une tâche) reste à faire avant mise en production
-  réelle.
+- **Testé par un vrai utilisateur** : un premier passage en production a révélé une récursion RLS
+  infinie sur `organization_members` (corrigée par des fonctions `SECURITY DEFINER` — voir le code et
+  la migration `20261109050000_fix_rls_recursion.sql`) et des avatars bloqués par le CSP (corrigé en
+  autorisant `img-src` vers `*.supabase.co`). Un seul compte réel a testé l'appli jusqu'ici ; le flux
+  à plusieurs comptes (inviter/rejoindre une organisation, messagerie entre deux personnes, assigner
+  une tâche à quelqu'un d'autre) n'est pas encore confirmé avec un second utilisateur.
 - **Vercel** : les variables d'environnement (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) doivent
   être configurées manuellement dans le dashboard Vercel (Settings → Environment Variables) — le
   connecteur Vercel MCP de cette session n'a pas accès à la gestion de projet/déploiement (seulement
